@@ -41,6 +41,7 @@ jobs:
         run: |
           make setup-go-work
           make config-reset
+          make build-client
           make build-cmd-linux
           make package-linux-amd64
           ls -lh dist/mattermost-team-linux-amd64.tar.gz

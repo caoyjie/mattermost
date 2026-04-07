@@ -1,6 +1,8 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+// api4 包定义所有 REST API 路由
+// 这是 Mattermost API v4 的主要入口点
 package api4
 
 import (
@@ -15,69 +17,81 @@ import (
 	"github.com/mattermost/mattermost/server/v8/channels/web"
 )
 
+// Routes 定义所有 API 路由结构
 type Routes struct {
-	Root     *mux.Router // ''
-	APIRoot  *mux.Router // 'api/v4'
-	APIRoot5 *mux.Router // 'api/v5'
+	Root     *mux.Router // 根路由 ''
+	APIRoot  *mux.Router // API v4 根路由 'api/v4'
+	APIRoot5 *mux.Router // API v5 根路由 'api/v5'
 
-	Users          *mux.Router // 'api/v4/users'
-	User           *mux.Router // 'api/v4/users/{user_id:[A-Za-z0-9]+}'
-	UserByUsername *mux.Router // 'api/v4/users/username/{username:[A-Za-z0-9\\_\\-\\.]+}'
-	UserByEmail    *mux.Router // 'api/v4/users/email/{email:.+}'
+	// 用户相关路由
+	Users          *mux.Router // 'api/v4/users' - 用户列表
+	User           *mux.Router // 'api/v4/users/{user_id:[A-Za-z0-9]+}' - 特定用户
+	UserByUsername *mux.Router // 'api/v4/users/username/{username:[A-Za-z0-9\\_\\-\\.]+}' - 按用户名查找
+	UserByEmail    *mux.Router // 'api/v4/users/email/{email:.+}' - 按邮箱查找
 
-	Bots *mux.Router // 'api/v4/bots'
-	Bot  *mux.Router // 'api/v4/bots/{bot_user_id:[A-Za-z0-9]+}'
+	// 机器人相关路由
+	Bots *mux.Router // 'api/v4/bots' - 机器人列表
+	Bot  *mux.Router // 'api/v4/bots/{bot_user_id:[A-Za-z0-9]+}' - 特定机器人
 
-	Teams              *mux.Router // 'api/v4/teams'
-	TeamsForUser       *mux.Router // 'api/v4/users/{user_id:[A-Za-z0-9]+}/teams'
-	Team               *mux.Router // 'api/v4/teams/{team_id:[A-Za-z0-9]+}'
-	TeamForUser        *mux.Router // 'api/v4/users/{user_id:[A-Za-z0-9]+}/teams/{team_id:[A-Za-z0-9]+}'
-	UserThreads        *mux.Router // 'api/v4/users/{user_id:[A-Za-z0-9]+}/teams/{team_id:[A-Za-z0-9]+}/threads'
-	UserThread         *mux.Router // 'api/v4/users/{user_id:[A-Za-z0-9]+}/teams/{team_id:[A-Za-z0-9]+}/threads/{thread_id:[A-Za-z0-9]+}'
-	TeamByName         *mux.Router // 'api/v4/teams/name/{team_name:[A-Za-z0-9_-]+}'
-	TeamMembers        *mux.Router // 'api/v4/teams/{team_id:[A-Za-z0-9]+}/members'
-	TeamMember         *mux.Router // 'api/v4/teams/{team_id:[A-Za-z0-9]+}/members/{user_id:[A-Za-z0-9]+}'
-	TeamMembersForUser *mux.Router // 'api/v4/users/{user_id:[A-Za-z0-9]+}/teams/members'
+	// 团队相关路由
+	Teams              *mux.Router // 'api/v4/teams' - 团队列表
+	TeamsForUser       *mux.Router // 'api/v4/users/{user_id:[A-Za-z0-9]+}/teams' - 用户的团队
+	Team               *mux.Router // 'api/v4/teams/{team_id:[A-Za-z0-9]+}' - 特定团队
+	TeamForUser        *mux.Router // 'api/v4/users/{user_id:[A-Za-z0-9]+}/teams/{team_id:[A-Za-z0-9]+}' - 用户的特定团队
+	UserThreads        *mux.Router // 'api/v4/users/{user_id:[A-Za-z0-9]+}/teams/{team_id:[A-Za-z0-9]+}/threads' - 用户线程
+	UserThread         *mux.Router // 'api/v4/users/{user_id:[A-Za-z0-9]+}/teams/{team_id:[A-Za-z0-9]+}/threads/{thread_id:[A-Za-z0-9]+}' - 特定线程
+	TeamByName         *mux.Router // 'api/v4/teams/name/{team_name:[A-Za-z0-9_-]+}' - 按名称查找团队
+	TeamMembers        *mux.Router // 'api/v4/teams/{team_id:[A-Za-z0-9]+}/members' - 团队成员
+	TeamMember         *mux.Router // 'api/v4/teams/{team_id:[A-Za-z0-9]+}/members/{user_id:[A-Za-z0-9]+}' - 特定团队成员
+	TeamMembersForUser *mux.Router // 'api/v4/users/{user_id:[A-Za-z0-9]+}/teams/members' - 用户的团队成员
 
-	Channels                 *mux.Router // 'api/v4/channels'
-	Channel                  *mux.Router // 'api/v4/channels/{channel_id:[A-Za-z0-9]+}'
-	ChannelForUser           *mux.Router // 'api/v4/users/{user_id:[A-Za-z0-9]+}/channels/{channel_id:[A-Za-z0-9]+}'
-	ChannelByName            *mux.Router // 'api/v4/teams/{team_id:[A-Za-z0-9]+}/channels/name/{channel_name:[A-Za-z0-9_-]+}'
-	ChannelByNameForTeamName *mux.Router // 'api/v4/teams/name/{team_name:[A-Za-z0-9_-]+}/channels/name/{channel_name:[A-Za-z0-9_-]+}'
-	ChannelsForTeam          *mux.Router // 'api/v4/teams/{team_id:[A-Za-z0-9]+}/channels'
-	ChannelMembers           *mux.Router // 'api/v4/channels/{channel_id:[A-Za-z0-9]+}/members'
-	ChannelMember            *mux.Router // 'api/v4/channels/{channel_id:[A-Za-z0-9]+}/members/{user_id:[A-Za-z0-9]+}'
-	ChannelMembersForUser    *mux.Router // 'api/v4/users/{user_id:[A-Za-z0-9]+}/teams/{team_id:[A-Za-z0-9]+}/channels/members'
-	ChannelModerations       *mux.Router // 'api/v4/channels/{channel_id:[A-Za-z0-9]+}/moderations'
-	ChannelCategories        *mux.Router // 'api/v4/users/{user_id:[A-Za-z0-9]+}/teams/{team_id:[A-Za-z0-9]+}/channels/categories'
-	ChannelBookmarks         *mux.Router // 'api/v4/channels/{channel_id:[A-Za-z0-9]+}/bookmarks'
-	ChannelBookmark          *mux.Router // 'api/v4/channels/{channel_id:[A-Za-z0-9]+}/bookmarks/{bookmark_id:[A-Za-z0-9]+}'
+	// 频道相关路由
+	Channels                 *mux.Router // 'api/v4/channels' - 频道列表
+	Channel                  *mux.Router // 'api/v4/channels/{channel_id:[A-Za-z0-9]+}' - 特定频道
+	ChannelForUser           *mux.Router // 'api/v4/users/{user_id:[A-Za-z0-9]+}/channels/{channel_id:[A-Za-z0-9]+}' - 用户的频道
+	ChannelByName            *mux.Router // 'api/v4/teams/{team_id:[A-Za-z0-9]+}/channels/name/{channel_name:[A-Za-z0-9_-]+}' - 按名称查找频道
+	ChannelByNameForTeamName *mux.Router // 'api/v4/teams/name/{team_name:[A-Za-z0-9_-]+}/channels/name/{channel_name:[A-Za-z0-9_-]+}' - 按团队名和频道名查找
+	ChannelsForTeam          *mux.Router // 'api/v4/teams/{team_id:[A-Za-z0-9]+}/channels' - 团队的频道
+	ChannelMembers           *mux.Router // 'api/v4/channels/{channel_id:[A-Za-z0-9]+}/members' - 频道成员
+	ChannelMember            *mux.Router // 'api/v4/channels/{channel_id:[A-Za-z0-9]+}/members/{user_id:[A-Za-z0-9]+}' - 特定频道成员
+	ChannelMembersForUser    *mux.Router // 'api/v4/users/{user_id:[A-Za-z0-9]+}/teams/{team_id:[A-Za-z0-9]+}/channels/members' - 用户的频道成员
+	ChannelModerations       *mux.Router // 'api/v4/channels/{channel_id:[A-Za-z0-9]+}/moderations' - 频道审核
+	ChannelCategories        *mux.Router // 'api/v4/users/{user_id:[A-Za-z0-9]+}/teams/{team_id:[A-Za-z0-9]+}/channels/categories' - 频道分类
+	ChannelBookmarks         *mux.Router // 'api/v4/channels/{channel_id:[A-Za-z0-9]+}/bookmarks' - 频道书签
+	ChannelBookmark          *mux.Router // 'api/v4/channels/{channel_id:[A-Za-z0-9]+}/bookmarks/{bookmark_id:[A-Za-z0-9]+}' - 特定书签
 
-	Posts           *mux.Router // 'api/v4/posts'
-	Post            *mux.Router // 'api/v4/posts/{post_id:[A-Za-z0-9]+}'
-	PostsForChannel *mux.Router // 'api/v4/channels/{channel_id:[A-Za-z0-9]+}/posts'
-	PostsForUser    *mux.Router // 'api/v4/users/{user_id:[A-Za-z0-9]+}/posts'
-	PostForUser     *mux.Router // 'api/v4/users/{user_id:[A-Za-z0-9]+}/posts/{post_id:[A-Za-z0-9]+}'
+	// 帖子相关路由
+	Posts           *mux.Router // 'api/v4/posts' - 帖子列表
+	Post            *mux.Router // 'api/v4/posts/{post_id:[A-Za-z0-9]+}' - 特定帖子
+	PostsForChannel *mux.Router // 'api/v4/channels/{channel_id:[A-Za-z0-9]+}/posts' - 频道的帖子
+	PostsForUser    *mux.Router // 'api/v4/users/{user_id:[A-Za-z0-9]+}/posts' - 用户的帖子
+	PostForUser     *mux.Router // 'api/v4/users/{user_id:[A-Za-z0-9]+}/posts/{post_id:[A-Za-z0-9]+}' - 用户的特定帖子
 
-	Files *mux.Router // 'api/v4/files'
-	File  *mux.Router // 'api/v4/files/{file_id:[A-Za-z0-9]+}'
+	// 文件相关路由
+	Files *mux.Router // 'api/v4/files' - 文件列表
+	File  *mux.Router // 'api/v4/files/{file_id:[A-Za-z0-9]+}' - 特定文件
 
-	Uploads *mux.Router // 'api/v4/uploads'
-	Upload  *mux.Router // 'api/v4/uploads/{upload_id:[A-Za-z0-9]+}'
+	// 上传相关路由
+	Uploads *mux.Router // 'api/v4/uploads' - 上传列表
+	Upload  *mux.Router // 'api/v4/uploads/{upload_id:[A-Za-z0-9]+}' - 特定上传
 
-	Plugins *mux.Router // 'api/v4/plugins'
-	Plugin  *mux.Router // 'api/v4/plugins/{plugin_id:[A-Za-z0-9\\_\\-\\.]+}'
+	// 插件相关路由
+	Plugins *mux.Router // 'api/v4/plugins' - 插件列表
+	Plugin  *mux.Router // 'api/v4/plugins/{plugin_id:[A-Za-z0-9\\_\\-\\.]+}' - 特定插件
 
-	PublicFile *mux.Router // '/files/{file_id:[A-Za-z0-9]+}/public'
+	// 公共文件路由
+	PublicFile *mux.Router // '/files/{file_id:[A-Za-z0-9]+}/public' - 公共文件访问
 
-	Commands *mux.Router // 'api/v4/commands'
-	Command  *mux.Router // 'api/v4/commands/{command_id:[A-Za-z0-9]+}'
+	// 命令相关路由
+	Commands *mux.Router // 'api/v4/commands' - 命令列表
+	Command  *mux.Router // 'api/v4/commands/{command_id:[A-Za-z0-9]+}' - 特定命令
 
-	Hooks         *mux.Router // 'api/v4/hooks'
-	IncomingHooks *mux.Router // 'api/v4/hooks/incoming'
-	IncomingHook  *mux.Router // 'api/v4/hooks/incoming/{hook_id:[A-Za-z0-9]+}'
-	OutgoingHooks *mux.Router // 'api/v4/hooks/outgoing'
-	OutgoingHook  *mux.Router // 'api/v4/hooks/outgoing/{hook_id:[A-Za-z0-9]+}'
+	// Webhook 相关路由
+	Hooks         *mux.Router // 'api/v4/hooks' - Webhook 列表
+	IncomingHooks *mux.Router // 'api/v4/hooks/incoming' - 入站 Webhook
+	IncomingHook  *mux.Router // 'api/v4/hooks/incoming/{hook_id:[A-Za-z0-9]+}' - 特定入站 Webhook
+	OutgoingHooks *mux.Router // 'api/v4/hooks/outgoing' - 出站 Webhook
+	OutgoingHook  *mux.Router // 'api/v4/hooks/outgoing/{hook_id:[A-Za-z0-9]+}' - 特定出站 Webhook
 
 	OAuth     *mux.Router // 'api/v4/oauth'
 	OAuthApps *mux.Router // 'api/v4/oauth/apps'

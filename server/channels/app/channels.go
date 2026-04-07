@@ -1,6 +1,8 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+// Channels 是频道相关业务逻辑的核心容器
+// 包含所有与频道相关的状态和服务
 package app
 
 import (
@@ -25,6 +27,7 @@ import (
 	"github.com/mattermost/mattermost/server/v8/platform/shared/filestore"
 )
 
+// configService 配置服务接口，用于管理和更新配置
 type configService interface {
 	Config() *model.Config
 	AddConfigListener(listener func(*model.Config, *model.Config)) string
@@ -33,31 +36,32 @@ type configService interface {
 	SaveConfig(newCfg *model.Config, sendConfigChangeClusterMessage bool) (*model.Config, *model.Config, *model.AppError)
 }
 
-// Channels contains all channels related state.
+// Channels 包含所有频道相关的状态
 type Channels struct {
-	srv             *Server
-	cfgSvc          configService
-	filestore       filestore.FileBackend
-	exportFilestore filestore.FileBackend
+	srv             *Server                     // 引用 Server 实例
+	cfgSvc          configService               // 配置服务
+	filestore       filestore.FileBackend       // 文件存储后端
+	exportFilestore filestore.FileBackend       // 导出文件存储后端
 
-	postActionCookieSecret []byte
+	postActionCookieSecret []byte // 帖子操作 Cookie 密钥
 
-	pluginCommandsLock            sync.RWMutex
-	pluginCommands                []*PluginCommand
-	pluginsLock                   sync.RWMutex
-	pluginsEnvironment            *plugin.Environment
-	pluginConfigListenerID        string
-	pluginClusterLeaderListenerID string
+	pluginCommandsLock            sync.RWMutex   // 插件命令锁
+	pluginCommands                []*PluginCommand // 插件命令列表
+	pluginsLock                   sync.RWMutex   // 插件锁
+	pluginsEnvironment            *plugin.Environment // 插件环境
+	pluginConfigListenerID        string          // 插件配置监听器 ID
+	pluginClusterLeaderListenerID string          // 插件集群领导者监听器 ID
 
-	imageProxy *imageproxy.ImageProxy
+	imageProxy *imageproxy.ImageProxy // 图片代理服务
 
-	// cached counts that are used during notice condition validation
-	cachedPostCount   int64
-	cachedUserCount   int64
-	cachedDBMSVersion string
-	// previously fetched notices
+	// 以下缓存计数用于通知条件验证
+	cachedPostCount   int64 // 缓存的帖子数量
+	cachedUserCount   int64 // 缓存的用户数量
+	cachedDBMSVersion string // 缓存的数据库版本
+	// 之前获取的通知
 	cachedNotices model.ProductNotices
 
+	// 企业版接口
 	AccountMigration einterfaces.AccountMigrationInterface
 	Compliance       einterfaces.ComplianceInterface
 	DataRetention    einterfaces.DataRetentionInterface
@@ -68,28 +72,27 @@ type Channels struct {
 	AccessControl    einterfaces.AccessControlServiceInterface
 	Intune           einterfaces.IntuneInterface
 
-	// These are used to prevent concurrent upload requests
-	// for a given upload session which could cause inconsistencies
-	// and data corruption.
+	// 以下用于防止并发上传请求导致的不一致和数据损坏
 	uploadLockMapMut sync.Mutex
 	uploadLockMap    map[string]bool
 
-	imgDecoder *imaging.Decoder
-	imgEncoder *imaging.Encoder
+	imgDecoder *imaging.Decoder // 图片解码器
+	imgEncoder *imaging.Encoder // 图片编码器
 
 	dndTaskMut sync.Mutex
-	dndTask    *model.ScheduledTask
+	dndTask    *model.ScheduledTask // "请勿打扰" 定时任务
 
 	postReminderMut  sync.Mutex
-	postReminderTask *model.ScheduledTask
+	postReminderTask *model.ScheduledTask // 帖子提醒任务
 
 	interruptQuitChan     chan struct{}
 	scheduledPostMut      sync.Mutex
-	scheduledPostTask     *model.ScheduledTask
+	scheduledPostTask     *model.ScheduledTask // 定时发帖任务
 	emailLoginAttemptsMut sync.Mutex
 	ldapLoginAttemptsMut  sync.Mutex
 }
 
+// NewChannels 创建并初始化 Channels 实例
 func NewChannels(s *Server) (*Channels, error) {
 	ch := &Channels{
 		srv:               s,

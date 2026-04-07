@@ -3,6 +3,8 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+// store 包定义所有数据仓储接口
+// 这是数据访问层的核心抽象，所有具体的数据库实现都基于这些接口
 package store
 
 import (
@@ -15,89 +17,93 @@ import (
 	"github.com/mattermost/mattermost/server/public/shared/request"
 )
 
+// StoreResult 是泛型结果返回类型
 type StoreResult[T any] struct {
 	Data T
 
-	// NErr a temporary field used by the new code for the AppError migration. This will later become Err when the entire store is migrated.
+	// NErr 是新代码用于 AppError 迁移的临时错误字段
+	// 迁移完成后将成为 Err
 	NErr error
 }
 
+// Store 是顶层数据仓储接口
+// 所有具体的存储实现都必须实现此接口
 type Store interface {
-	Team() TeamStore
-	Channel() ChannelStore
-	Post() PostStore
-	RetentionPolicy() RetentionPolicyStore
-	Thread() ThreadStore
-	User() UserStore
-	Bot() BotStore
-	Audit() AuditStore
-	ClusterDiscovery() ClusterDiscoveryStore
-	RemoteCluster() RemoteClusterStore
-	Compliance() ComplianceStore
-	Session() SessionStore
-	OAuth() OAuthStore
-	OutgoingOAuthConnection() OutgoingOAuthConnectionStore
-	System() SystemStore
-	Webhook() WebhookStore
-	Command() CommandStore
-	CommandWebhook() CommandWebhookStore
-	Preference() PreferenceStore
-	License() LicenseStore
-	Token() TokenStore
-	Emoji() EmojiStore
-	Status() StatusStore
-	FileInfo() FileInfoStore
-	UploadSession() UploadSessionStore
-	Reaction() ReactionStore
-	Role() RoleStore
-	Scheme() SchemeStore
-	Job() JobStore
-	UserAccessToken() UserAccessTokenStore
-	ChannelMemberHistory() ChannelMemberHistoryStore
-	Plugin() PluginStore
-	TermsOfService() TermsOfServiceStore
-	ProductNotices() ProductNoticesStore
-	Group() GroupStore
-	UserTermsOfService() UserTermsOfServiceStore
-	LinkMetadata() LinkMetadataStore
-	SharedChannel() SharedChannelStore
-	Draft() DraftStore
-	MarkSystemRanUnitTests()
-	Close()
-	LockToMaster()
-	UnlockFromMaster()
-	DropAllTables()
-	RecycleDBConnections(d time.Duration)
-	GetDBSchemaVersion() (int, error)
-	GetLocalSchemaVersion() (int, error)
-	GetAppliedMigrations() ([]model.AppliedMigration, error)
-	GetDbVersion(numerical bool) (string, error)
-	// GetInternalMasterDB allows access to the raw master DB
-	// handle for plugins.
+	// 返回各种资源的 Store 接口
+	Team() TeamStore                // 团队存储
+	Channel() ChannelStore          // 频道存储
+	Post() PostStore                // 帖子存储
+	RetentionPolicy() RetentionPolicyStore  // 保留策略存储
+	Thread() ThreadStore            // 线程存储
+	User() UserStore                // 用户存储
+	Bot() BotStore                  // 机器人存储
+	Audit() AuditStore              // 审计存储
+	ClusterDiscovery() ClusterDiscoveryStore  // 集群发现存储
+	RemoteCluster() RemoteClusterStore      // 远程集群存储
+	Compliance() ComplianceStore    // 合规性存储
+	Session() SessionStore          // 会话存储
+	OAuth() OAuthStore              // OAuth 存储
+	OutgoingOAuthConnection() OutgoingOAuthConnectionStore // 出站 OAuth 连接存储
+	System() SystemStore            // 系统存储
+	Webhook() WebhookStore          // Webhook 存储
+	Command() CommandStore          // 命令存储
+	CommandWebhook() CommandWebhookStore    // 命令 Webhook 存储
+	Preference() PreferenceStore    // 偏好设置存储
+	License() LicenseStore          // 许可证存储
+	Token() TokenStore              // 令牌存储
+	Emoji() EmojiStore              // Emoji 存储
+	Status() StatusStore            // 状态存储
+	FileInfo() FileInfoStore        // 文件信息存储
+	UploadSession() UploadSessionStore      // 上传会话存储
+	Reaction() ReactionStore        // 反应存储
+	Role() RoleStore                // 角色存储
+	Scheme() SchemeStore            // 方案存储
+	Job() JobStore                  // 任务存储
+	UserAccessToken() UserAccessTokenStore  // 用户访问令牌存储
+	ChannelMemberHistory() ChannelMemberHistoryStore // 频道成员历史存储
+	Plugin() PluginStore            // 插件存储
+	TermsOfService() TermsOfServiceStore    // 服务条款存储
+	ProductNotices() ProductNoticesStore    // 产品通知存储
+	Group() GroupStore              // 组存储
+	UserTermsOfService() UserTermsOfServiceStore // 用户服务条款存储
+	LinkMetadata() LinkMetadataStore // 链接元数据存储
+	SharedChannel() SharedChannelStore      // 共享频道存储
+	Draft() DraftStore              // 草稿存储
+	MarkSystemRanUnitTests()        // 标记系统运行了单元测试
+	Close()                         // 关闭所有数据库连接
+	LockToMaster()                  // 锁定到主数据库
+	UnlockFromMaster()              // 从主数据库解锁
+	DropAllTables()                 // 删除所有表
+	RecycleDBConnections(d time.Duration)   // 回收数据库连接
+	GetDBSchemaVersion() (int, error)       // 获取数据库架构版本
+	GetLocalSchemaVersion() (int, error)    // 获取本地架构版本
+	GetAppliedMigrations() ([]model.AppliedMigration, error) // 获取已应用的迁移
+	GetDbVersion(numerical bool) (string, error) // 获取数据库版本
+	// GetInternalMasterDB 允许插件访问原始主数据库句柄
 	GetInternalMasterDB() *sql.DB
-	GetInternalReplicaDB() *sql.DB
-	TotalMasterDbConnections() int
-	TotalReadDbConnections() int
-	TotalSearchDbConnections() int
-	ReplicaLagTime() error
-	ReplicaLagAbs() error
-	CheckIntegrity() <-chan model.IntegrityCheckResult
-	Logger() mlog.LoggerIFace
-	NotifyAdmin() NotifyAdminStore
-	PostPriority() PostPriorityStore
-	PostAcknowledgement() PostAcknowledgementStore
-	PostPersistentNotification() PostPersistentNotificationStore
-	DesktopTokens() DesktopTokensStore
-	ChannelBookmark() ChannelBookmarkStore
-	ScheduledPost() ScheduledPostStore
-	PropertyGroup() PropertyGroupStore
-	PropertyField() PropertyFieldStore
-	PropertyValue() PropertyValueStore
-	AccessControlPolicy() AccessControlPolicyStore
-	Attributes() AttributesStore
-	AutoTranslation() AutoTranslationStore
-	GetSchemaDefinition() (*model.SupportPacketDatabaseSchema, error)
-	ContentFlagging() ContentFlaggingStore
+	GetInternalReplicaDB() *sql.DB          // 获取副本数据库
+	TotalMasterDbConnections() int          // 主数据库连接总数
+	TotalReadDbConnections() int            // 只读数据库连接总数
+	TotalSearchDbConnections() int          // 搜索数据库连接总数
+	ReplicaLagTime() error                  // 副本延迟时间
+	ReplicaLagAbs() error                   // 副本延迟绝对值
+	CheckIntegrity() <-chan model.IntegrityCheckResult // 检查数据完整性
+	Logger() mlog.LoggerIFace               // 日志记录器
+	NotifyAdmin() NotifyAdminStore          // 通知管理员存储
+	PostPriority() PostPriorityStore        // 帖子优先级存储
+	PostAcknowledgement() PostAcknowledgementStore // 帖子确认存储
+	PostPersistentNotification() PostPersistentNotificationStore // 帖子持久通知存储
+	DesktopTokens() DesktopTokensStore      // 桌面令牌存储
+	ChannelBookmark() ChannelBookmarkStore  // 频道书签存储
+	ScheduledPost() ScheduledPostStore      // 定时帖子存储
+	PropertyGroup() PropertyGroupStore      // 属性组存储
+	PropertyField() PropertyFieldStore      // 属性字段存储
+	PropertyValue() PropertyValueStore      // 属性值存储
+	AccessControlPolicy() AccessControlPolicyStore // 访问控制策略存储
+	Attributes() AttributesStore            // 属性存储
+	AutoTranslation() AutoTranslationStore  // 自动翻译存储
+	GetSchemaDefinition() (*model.SupportPacketDatabaseSchema, error) // 获取架构定义
+	ContentFlagging() ContentFlaggingStore  // 内容标记存储
 	Recap() RecapStore
 	ReadReceipt() ReadReceiptStore
 	TemporaryPost() TemporaryPostStore

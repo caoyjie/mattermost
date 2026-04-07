@@ -1,6 +1,8 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+// handlers.go 定义 API 处理器的认证中间件
+// 提供不同类型端点的处理器：无需登录、需要会话、需要云 API 密钥等
 package api4
 
 import (
@@ -14,47 +16,49 @@ import (
 	"github.com/mattermost/mattermost/server/v8/channels/web"
 )
 
+// Context 是 web.Context 的别名，表示请求上下文
 type Context = web.Context
 
+// handlerFunc 定义处理器函数类型
 type handlerFunc func(*Context, http.ResponseWriter, *http.Request)
 
+// APIHandlerOption 定义 API 处理器选项类型
 type APIHandlerOption string
 
 const (
-	handlerParamFileAPI = APIHandlerOption("fileAPI")
+	handlerParamFileAPI = APIHandlerOption("fileAPI") // 文件 API 选项
 )
 
-// APIHandler provides a handler for API endpoints which do not require the user to be logged in order for access to be
-// granted.
+// APIHandler 为不需要用户登录的 API 端点提供处理器
 func (api *API) APIHandler(h handlerFunc, opts ...APIHandlerOption) http.Handler {
 	handler := &web.Handler{
 		Srv:            api.srv,
 		HandleFunc:     h,
 		HandlerName:    web.GetHandlerName(h),
-		RequireSession: false,
+		RequireSession: false, // 不需要会话
 		TrustRequester: false,
-		RequireMfa:     false,
+		RequireMfa:     false, // 不需要 MFA
 		IsStatic:       false,
 		IsLocal:        false,
 	}
 	setHandlerOpts(handler, opts...)
 
+	// 如果启用了 gzip 压缩，则包装处理器
 	if *api.srv.Config().ServiceSettings.WebserverMode == "gzip" {
 		return gzhttp.GzipHandler(handler)
 	}
 	return handler
 }
 
-// APISessionRequired provides a handler for API endpoints which require the user to be logged in in order for access to
-// be granted.
+// APISessionRequired 为需要用户登录的 API 端点提供处理器
 func (api *API) APISessionRequired(h handlerFunc, opts ...APIHandlerOption) http.Handler {
 	handler := &web.Handler{
 		Srv:            api.srv,
 		HandleFunc:     h,
 		HandlerName:    web.GetHandlerName(h),
-		RequireSession: true,
+		RequireSession: true, // 需要会话
 		TrustRequester: false,
-		RequireMfa:     true,
+		RequireMfa:     true, // 需要 MFA
 		IsStatic:       false,
 		IsLocal:        false,
 	}
@@ -66,14 +70,14 @@ func (api *API) APISessionRequired(h handlerFunc, opts ...APIHandlerOption) http
 	return handler
 }
 
-// CloudAPIKeyRequired provides a handler for webhook endpoints to access Cloud installations from CWS
+// CloudAPIKeyRequired 为需要从 CWS（Cloud Web Service）访问云安装的 Webhook 端点提供处理器
 func (api *API) CloudAPIKeyRequired(h handlerFunc, opts ...APIHandlerOption) http.Handler {
 	handler := &web.Handler{
 		Srv:             api.srv,
 		HandleFunc:      h,
 		HandlerName:     web.GetHandlerName(h),
 		RequireSession:  false,
-		RequireCloudKey: true,
+		RequireCloudKey: true, // 需要云 API 密钥
 		TrustRequester:  false,
 		RequireMfa:      false,
 		IsStatic:        false,
@@ -87,7 +91,7 @@ func (api *API) CloudAPIKeyRequired(h handlerFunc, opts ...APIHandlerOption) htt
 	return handler
 }
 
-// RemoteClusterTokenRequired provides a handler for remote cluster requests to /remotecluster endpoints.
+// RemoteClusterTokenRequired 为远程集群请求 /remotecluster 端点提供处理器
 func (api *API) RemoteClusterTokenRequired(h handlerFunc, opts ...APIHandlerOption) http.Handler {
 	handler := &web.Handler{
 		Srv:                       api.srv,
@@ -95,7 +99,7 @@ func (api *API) RemoteClusterTokenRequired(h handlerFunc, opts ...APIHandlerOpti
 		HandlerName:               web.GetHandlerName(h),
 		RequireSession:            false,
 		RequireCloudKey:           false,
-		RequireRemoteClusterToken: true,
+		RequireRemoteClusterToken: true, // 需要远程集群令牌
 		TrustRequester:            false,
 		RequireMfa:                false,
 		IsStatic:                  false,

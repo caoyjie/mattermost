@@ -1,6 +1,9 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+// App 是纯函数式业务逻辑层
+// 它不包含任何字段（除了 Server），每次请求时都会创建一个新的 App 实例
+// 通过其方法为 Server 提供业务逻辑支持
 package app
 
 import (
@@ -19,13 +22,14 @@ import (
 	"github.com/mattermost/mattermost/server/v8/platform/shared/templates"
 )
 
-// App is a pure functional component that does not have any fields, except Server.
-// It is a request-scoped struct constructed every time a request hits the server,
-// and its only purpose is to provide business logic to Server via its methods.
+// App 是纯函数式组件，不包含任何字段（除了 Server）
+// 它是一个请求级别的结构体，每次请求都会创建新实例
+// 唯一目的是通过其方法为 Server 提供业务逻辑
 type App struct {
-	ch *Channels
+	ch *Channels // 引用 Channels 实例
 }
 
+// New 创建一个新的 App 实例，并应用所有传入的选项
 func New(options ...AppOption) *App {
 	app := &App{}
 
@@ -36,14 +40,17 @@ func New(options ...AppOption) *App {
 	return app
 }
 
+// ServerId 返回服务器 ID
 func (a *App) ServerId() string {
 	return a.Srv().ServerId()
 }
 
+// TemplatesContainer 返回 HTML 模板容器
 func (s *Server) TemplatesContainer() *templates.Container {
 	return s.htmlTemplates
 }
 
+// getFirstServerRunTimestamp 获取服务器首次运行时间戳
 func (s *Server) getFirstServerRunTimestamp() (int64, *model.AppError) {
 	systemData, err := s.Store().System().GetByName(model.SystemFirstServerRunTimestampKey)
 	if err != nil {
@@ -56,46 +63,75 @@ func (s *Server) getFirstServerRunTimestamp() (int64, *model.AppError) {
 	return value, nil
 }
 
+// Channels 返回 Channels 实例
 func (a *App) Channels() *Channels {
 	return a.ch
 }
+
+// Srv 返回 Server 实例
 func (a *App) Srv() *Server {
 	return a.ch.srv
 }
+
+// Log 返回日志记录器
 func (a *App) Log() *mlog.Logger {
 	return a.ch.srv.Log()
 }
 
+// 以下方法提供各种企业接口的访问
+// 这些接口在开源版本和企业版中可能有不同的实现
+
+// AccountMigration 返回账户迁移接口
 func (a *App) AccountMigration() einterfaces.AccountMigrationInterface {
 	return a.ch.AccountMigration
 }
+
+// Cluster 返回集群接口
 func (a *App) Cluster() einterfaces.ClusterInterface {
 	return a.ch.srv.platform.Cluster()
 }
+
+// Compliance 返回合规性接口
 func (a *App) Compliance() einterfaces.ComplianceInterface {
 	return a.ch.Compliance
 }
+
+// DataRetention 返回数据保留接口
 func (a *App) DataRetention() einterfaces.DataRetentionInterface {
 	return a.ch.DataRetention
 }
+
+// SearchEngine 返回搜索引擎接口
 func (a *App) SearchEngine() *searchengine.Broker {
 	return a.ch.srv.platform.SearchEngine
 }
+
+// Ldap 返回 LDAP 接口
 func (a *App) Ldap() einterfaces.LdapInterface {
 	return a.ch.Ldap
 }
+
+// LdapDiagnostic 返回 LDAP 诊断接口
 func (a *App) LdapDiagnostic() einterfaces.LdapDiagnosticInterface {
 	return a.ch.srv.platform.LdapDiagnostic()
 }
+
+// MessageExport 返回消息导出接口
 func (a *App) MessageExport() einterfaces.MessageExportInterface {
 	return a.ch.MessageExport
 }
+
+// Metrics 返回指标接口
 func (a *App) Metrics() einterfaces.MetricsInterface {
 	return a.ch.srv.GetMetrics()
 }
+
+// Notification 返回通知接口
 func (a *App) Notification() einterfaces.NotificationInterface {
 	return a.ch.Notification
 }
+
+// AutoTranslation 返回自动翻译接口
 func (a *App) AutoTranslation() einterfaces.AutoTranslationInterface {
 	return a.Srv().AutoTranslation
 }

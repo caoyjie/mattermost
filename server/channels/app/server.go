@@ -1,6 +1,9 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+// Server 是整个应用的核心容器
+// 管理 HTTP 服务器、平台服务、Channels、Email 服务、Telemetry、Sentry 错误追踪等
+// 包含完整的启动流程：Platform -> Enterprise -> Services -> Channels
 package app
 
 import (
@@ -81,77 +84,79 @@ import (
 )
 
 const (
-	scheduledPostJobInterval      = 5 * time.Minute
-	debugScheduledPostJobInterval = 2 * time.Second
+	scheduledPostJobInterval      = 5 * time.Minute  // 定时发帖任务间隔
+	debugScheduledPostJobInterval = 2 * time.Second  // 调试模式下的定时发帖任务间隔
 )
 
+// SentryDSN Sentry 错误追踪数据源名称
 var SentryDSN = "https://eaf281226106b5bba68694d1316da21c@o94110.ingest.us.sentry.io/5212327"
 
+// Server 是整个应用的核心容器结构体
 type Server struct {
-	// RootRouter is the starting point for all HTTP requests to the server.
+	// RootRouter 是所有 HTTP 请求的起始路由器
 	RootRouter *mux.Router
 
-	// LocalRouter is the starting point for all the local UNIX socket
-	// requests to the server
+	// LocalRouter 是本地 UNIX socket 请求的起始路由器
 	LocalRouter *mux.Router
 
-	// Router is the starting point for all web, api4 and ws requests to the server. It differs
-	// from RootRouter only if the SiteURL contains a /subpath.
+	// Router 是所有 web、api4 和 ws 请求的起始路由器
+	// 仅当 SiteURL 包含 /subpath 时才与 RootRouter 不同
 	Router *mux.Router
 
-	Server      *http.Server
-	ListenAddr  *net.TCPAddr
-	RateLimiter *RateLimiter
+	Server      *http.Server            // HTTP 服务器实例
+	ListenAddr  *net.TCPAddr            // 监听地址
+	RateLimiter *RateLimiter            // 速率限制器
 
-	localModeServer *http.Server
+	localModeServer *http.Server        // 本地模式服务器（仅监听本地）
 
-	didFinishListen chan struct{}
+	didFinishListen chan struct{}       // 监听完成信号通道
 
-	EmailService email.ServiceInterface
+	EmailService email.ServiceInterface // 邮件服务接口
 
-	httpService            httpservice.HTTPService
-	PushNotificationsHub   PushNotificationsHub
-	pushNotificationClient *http.Client // TODO: move this to it's own package
-	outgoingWebhookClient  *http.Client
+	httpService            httpservice.HTTPService // HTTP 服务
+	PushNotificationsHub   PushNotificationsHub    // 推送通知中心
+	pushNotificationClient *http.Client            // 推送通知客户端（TODO: 移动到独立包）
+	outgoingWebhookClient  *http.Client            // 出站 Webhook 客户端
 
-	runEssentialJobs bool
-	Jobs             *jobs.JobServer
+	runEssentialJobs bool           // 是否运行必要的后台任务
+	Jobs             *jobs.JobServer // 任务服务器
 
-	timezones *timezones.Timezones
+	timezones *timezones.Timezones // 时区服务
 
-	htmlTemplates           *templates.Container
-	seenPendingPostIdsCache cache.Cache
-	openGraphDataCache      cache.Cache
-	clusterLeaderListenerId string
-	loggerLicenseListenerId string
+	htmlTemplates           *templates.Container // HTML 模板容器
+	seenPendingPostIdsCache cache.Cache          // 已见待处理帖子 ID 缓存
+	openGraphDataCache      cache.Cache          // OpenGraph 数据缓存
+	clusterLeaderListenerId string               // 集群领导者监听器 ID
+	loggerLicenseListenerId string               // 日志许可证监听器 ID
 
-	platform              *platform.PlatformService
-	platformOptions       []platform.Option
-	telemetryService      *telemetry.TelemetryService
-	userService           *users.UserService
-	teamService           *teams.TeamService
-	propertyAccessService *PropertyAccessService
+	platform              *platform.PlatformService // 平台服务
+	platformOptions       []platform.Option         // 平台选项
+	telemetryService      *telemetry.TelemetryService // 遥测服务
+	userService           *users.UserService         // 用户服务
+	teamService           *teams.TeamService         // 团队服务
+	propertyAccessService *PropertyAccessService     // 属性访问服务
 
-	serviceMux           sync.RWMutex
-	remoteClusterService remotecluster.RemoteClusterServiceIFace
-	sharedChannelService SharedChannelServiceIFace // TODO: platform: move to platform package
+	serviceMux           sync.RWMutex                        // 服务互斥锁
+	remoteClusterService remotecluster.RemoteClusterServiceIFace // 远程集群服务
+	sharedChannelService SharedChannelServiceIFace            // 共享频道服务（TODO: 移动到 platform 包）
 
-	phase2PermissionsMigrationComplete bool
+	phase2PermissionsMigrationComplete bool // 阶段 2 权限迁移是否完成
 
-	Audit *audit.Audit
+	Audit *audit.Audit // 审计日志
 
-	joinCluster  bool
-	skipPostInit bool
+	joinCluster  bool // 是否加入集群
+	skipPostInit bool // 是否跳过帖子初始化
 
-	Cloud                   einterfaces.CloudInterface
-	IPFiltering             einterfaces.IPFilteringInterface
-	OutgoingOAuthConnection einterfaces.OutgoingOAuthConnectionInterface
-	PushProxy               einterfaces.PushProxyInterface
-	AutoTranslation         einterfaces.AutoTranslationInterface
+	Cloud                   einterfaces.CloudInterface              // 云接口
+	IPFiltering             einterfaces.IPFilteringInterface        // IP 过滤接口
+	OutgoingOAuthConnection einterfaces.OutgoingOAuthConnectionInterface // 出站 OAuth 连接接口
+	PushProxy               einterfaces.PushProxyInterface          // 推送代理接口
+	AutoTranslation         einterfaces.AutoTranslationInterface    // 自动翻译接口
 
-	ch *Channels
+	ch *Channels // Channels 实例
 }
 
+// Store 返回平台服务的存储接口
 func (s *Server) Store() store.Store {
 	if s.platform != nil {
 		return s.platform.Store
@@ -160,12 +165,15 @@ func (s *Server) Store() store.Store {
 	return nil
 }
 
+// SetStore 设置平台服务的存储
 func (s *Server) SetStore(st store.Store) {
 	if s.platform != nil {
 		s.platform.Store = st
 	}
 }
 
+// NewServer 创建一个新的服务器实例
+// 接收可选的配置选项列表
 func NewServer(options ...Option) (*Server, error) {
 	rootRouter := mux.NewRouter()
 	localRouter := mux.NewRouter()
@@ -176,17 +184,17 @@ func NewServer(options ...Option) (*Server, error) {
 		timezones:   timezones.New(),
 	}
 
+	// 应用所有传入的选项
 	for _, option := range options {
 		if err := option(s); err != nil {
 			return nil, errors.Wrap(err, "failed to apply option")
 		}
 	}
 
-	// Following outlines the specific set of steps
-	// performed during server bootup. They are sensitive to order
-	// and has dependency requirements with the previous step.
+	// 以下概述了服务器启动期间执行的特定步骤集合
+	// 它们对顺序敏感，并且与前一步有依赖关系
 	//
-	// Step 1: Platform.
+	// 步骤 1: 初始化平台服务
 	if s.platform == nil {
 		ps, sErr := platform.New(platform.ServiceConfig{}, s.platformOptions...)
 		if sErr != nil {
@@ -195,19 +203,21 @@ func NewServer(options ...Option) (*Server, error) {
 		s.platform = ps
 	}
 
+	// 从配置中获取 SiteURL 子路径
 	subpath, err := utils.GetSubpathFromConfig(s.platform.Config())
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse SiteURL subpath")
 	}
 	s.Router = s.RootRouter.PathPrefix(subpath).Subrouter()
 
+	// 创建 HTTP 服务
 	s.httpService = httpservice.MakeHTTPService(s.platform)
 
-	// Step 2: Init Enterprise
-	// Depends on step 1 (s.Platform must be non-nil)
+	// 步骤 2: 初始化企业模块
+	// 依赖于步骤 1（s.Platform 必须非 nil）
 	s.initEnterprise()
 
-	// Needed to run before loading license.
+	// 需要在加载许可证之前运行
 	s.userService, err = users.New(users.ServiceConfig{
 		UserStore:    s.Store().User(),
 		SessionStore: s.Store().Session(),
@@ -221,6 +231,7 @@ func NewServer(options ...Option) (*Server, error) {
 		return nil, errors.Wrapf(err, "unable to create users service")
 	}
 
+	// 创建团队服务
 	s.teamService, err = teams.New(teams.ServiceConfig{
 		TeamStore:    s.Store().Team(),
 		ChannelStore: s.Store().Channel(),
@@ -234,6 +245,7 @@ func NewServer(options ...Option) (*Server, error) {
 		return nil, errors.Wrapf(err, "unable to create teams service")
 	}
 
+	// 创建属性服务
 	propertyService, err := properties.New(properties.ServiceConfig{
 		PropertyGroupStore: s.Store().PropertyGroup(),
 		PropertyFieldStore: s.Store().PropertyField(),
@@ -243,40 +255,41 @@ func NewServer(options ...Option) (*Server, error) {
 		return nil, errors.Wrapf(err, "unable to create properties service")
 	}
 
-	// Wrap PropertyService with access control layer to enforce caller-based permissions
+	// 为 PropertyService 包装访问控制层以强制执行基于调用者的权限
 	s.propertyAccessService = NewPropertyAccessService(propertyService, func(pluginID string) bool {
 		_, err := s.ch.GetPluginStatus(pluginID)
 		return err == nil
 	})
 
-	// It is important to initialize the hub only after the global logger is set
-	// to avoid race conditions while logging from inside the hub.
-	// Step 4: Start platform
+	// 必须在设置全局日志记录器后才能初始化 hub，这一点很重要
+	// 以避免在 hub 内部记录日志时出现竞争条件
+	// 步骤 4: 启动平台服务
 	if err = s.platform.Start(s.makeBroadcastHooks()); err != nil {
 		return nil, errors.Wrap(err, "failed to start platform")
 	}
 
-	// NOTE: There should be no call to App.Srv().Channels() before step 5 is done
-	// otherwise it will throw a panic.
+	// 注意：在步骤 5 完成之前，不应该调用 App.Srv().Channels()
+	// 否则会引发 panic
 
-	// Step 5: Initialize channels.
-	// Depends on s.httpService, and depends on the hub to be initialized.
-	// Otherwise we run into race conditions.
+	// 步骤 5: 初始化 Channels
+	// 依赖于 s.httpService，并且依赖 hub 已经初始化
+	// 否则我们会遇到竞争条件
 	channels, err := NewChannels(s)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to initialize channels")
 	}
 	s.ch = channels
 
-	// After channel is initialized set it to the App object
+	// Channels 初始化完成后，将其设置到 App 对象
 	app := New(ServerConnector(channels))
 
 	// -------------------------------------------------------------------------
-	// Everything below this is not order sensitive and safe to be moved around.
-	// If you are adding a new field that is non-channels specific, please add
-	// below this. Otherwise, please add it to Channels struct in app/channels.go.
+	// 以下代码对顺序不敏感，可以安全地移动
+	// 如果要添加与 channels 无关的新字段，请添加到此下方
+	// 否则，请添加到 app/channels.go 中的 Channels 结构体
 	// -------------------------------------------------------------------------
 
+	// 如果启用了诊断日志和 Sentry，则初始化 Sentry 错误追踪
 	if *s.platform.Config().LogSettings.EnableDiagnostics && *s.platform.Config().LogSettings.EnableSentry {
 		switch model.GetServiceEnvironment() {
 		case model.ServiceEnvironmentDev:
@@ -287,7 +300,7 @@ func NewServer(options ...Option) (*Server, error) {
 				Release:          model.BuildHash,
 				AttachStacktrace: true,
 				BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
-					// sanitize data sent to sentry to reduce exposure of PII
+					// 清理发送到 Sentry 的数据以减少 PII（个人身份信息）暴露
 					if event.Request != nil {
 						event.Request.Cookies = ""
 						event.Request.QueryString = ""

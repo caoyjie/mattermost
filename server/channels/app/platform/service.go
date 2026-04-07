@@ -1,6 +1,9 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+// platform 包提供平台服务
+// 负责数据库访问、配置管理、许可证验证、缓存、WebSocket Hub 等基础设施
+// 包含完整的 11 步启动流程
 package platform
 
 import (
@@ -33,70 +36,69 @@ import (
 	"github.com/mattermost/mattermost/server/v8/platform/shared/filestore"
 )
 
-// PlatformService is the service for the platform related tasks. It is
-// responsible for non-entity related functionalities that are required
-// by a product such as database access, configuration access, licensing etc.
+// PlatformService 是平台相关任务的服务
+// 负责产品所需的非实体相关功能，如数据库访问、配置访问、许可证等
 type PlatformService struct {
-	sqlStore     *sqlstore.SqlStore
-	Store        store.Store
-	newStore     func() (store.Store, error)
-	storeOptions []sqlstore.Option
+	sqlStore     *sqlstore.SqlStore // SQL 存储
+	Store        store.Store        // 数据存储
+	newStore     func() (store.Store, error) // 创建新存储的函数
+	storeOptions []sqlstore.Option // 存储选项
 
-	WebSocketRouter *WebSocketRouter
+	WebSocketRouter *WebSocketRouter // WebSocket 路由器
 
-	configStore *config.Store
+	configStore *config.Store // 配置存储
 
-	filestore       filestore.FileBackend
-	exportFilestore filestore.FileBackend
+	filestore       filestore.FileBackend       // 文件存储
+	exportFilestore filestore.FileBackend       // 导出文件存储
 
-	// Channel for batching status updates
+	// 用于批量处理状态更新的通道
 	statusUpdateChan       chan *model.Status
 	statusUpdateExitSignal chan struct{}
 	statusUpdateDoneSignal chan struct{}
 
-	cacheProvider cache.Provider
-	statusCache   cache.Cache
-	sessionCache  cache.Cache
+	cacheProvider cache.Provider // 缓存提供者
+	statusCache   cache.Cache    // 状态缓存
+	sessionCache  cache.Cache    // 会话缓存
 
-	asymmetricSigningKey atomic.Pointer[ecdsa.PrivateKey]
-	clientConfig         atomic.Value
-	clientConfigHash     atomic.Value
-	limitedClientConfig  atomic.Value
+	asymmetricSigningKey atomic.Pointer[ecdsa.PrivateKey] // 非对称签名密钥
+	clientConfig         atomic.Value // 客户端配置
+	clientConfigHash     atomic.Value // 客户端配置哈希
+	limitedClientConfig  atomic.Value // 受限客户端配置
 
-	isFirstUserAccountLock sync.Mutex
-	isFirstUserAccount     atomic.Bool
+	isFirstUserAccountLock sync.Mutex // 首个用户账户锁
+	isFirstUserAccount     atomic.Bool // 是否为首个用户账户
 
-	logger *mlog.Logger
+	logger *mlog.Logger // 日志记录器
 
 	startMetrics bool
-	metrics      *platformMetrics
-	metricsIFace einterfaces.MetricsInterface
+	metrics      *platformMetrics // 平台指标
+	metricsIFace einterfaces.MetricsInterface // 指标接口
 
-	featureFlagSynchronizerMutex sync.Mutex
-	featureFlagSynchronizer      *featureflag.Synchronizer
-	featureFlagStop              chan struct{}
-	featureFlagStopped           chan struct{}
+	featureFlagSynchronizerMutex sync.Mutex // 特性标志同步互斥锁
+	featureFlagSynchronizer      *featureflag.Synchronizer // 特性标志同步器
+	featureFlagStop              chan struct{} // 特性标志停止信号
+	featureFlagStopped           chan struct{} // 特性标志已停止信号
 
-	licenseValue       atomic.Pointer[model.License]
-	clientLicenseValue atomic.Value
-	licenseListeners   map[string]func(*model.License, *model.License)
-	licenseManager     einterfaces.LicenseInterface
+	licenseValue       atomic.Pointer[model.License] // 许可证值
+	clientLicenseValue atomic.Value // 客户端许可证值
+	licenseListeners   map[string]func(*model.License, *model.License) // 许可证监听器
+	licenseManager     einterfaces.LicenseInterface // 许可证管理器
 
-	telemetryId       string
-	configListenerId  string
-	licenseListenerId string
+	telemetryId       string // 遥测 ID
+	configListenerId  string // 配置监听器 ID
+	licenseListenerId string // 许可证监听器 ID
 
-	clusterLeaderListeners sync.Map
-	clusterIFace           einterfaces.ClusterInterface
-	Busy                   *Busy
+	clusterLeaderListeners sync.Map // 集群领导者监听器
+	clusterIFace           einterfaces.ClusterInterface // 集群接口
+	Busy                   *Busy // 忙碌状态
 
-	SearchEngine            *searchengine.Broker
-	searchConfigListenerId  string
-	searchLicenseListenerId string
+	SearchEngine            *searchengine.Broker // 搜索引擎
+	searchConfigListenerId  string // 搜索配置监听器 ID
+	searchLicenseListenerId string // 搜索许可证监听器 ID
 
-	ldapDiagnostic einterfaces.LdapDiagnosticInterface
+	ldapDiagnostic einterfaces.LdapDiagnosticInterface // LDAP 诊断接口
 
-	Jobs *jobs.JobServer
+	Jobs *jobs.JobServer // 任务服务器
 
 	hubs     []*Hub
 	hashSeed maphash.Seed

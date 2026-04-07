@@ -1,6 +1,9 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
+// config 包提供配置管理功能
+// 支持多种后端存储（文件、数据库、内存）
+// 处理环境变量覆盖、特性标志、配置变更监听
 package config
 
 import (
@@ -17,57 +20,56 @@ import (
 )
 
 var (
-	// ErrReadOnlyStore is returned when an attempt to modify a read-only
-	// configuration store is made.
+	// ErrReadOnlyStore 在尝试修改只读配置存储时返回
 	ErrReadOnlyStore = errors.New("configuration store is read-only")
 )
 
-// Store is the higher level object that handles storing and retrieval of config data.
-// To do so it relies on a variety of backing stores (e.g. file, database, memory).
+// Store 是处理配置存储和检索的高层对象
+// 它依赖于多种后端存储（如文件、数据库、内存）
 type Store struct {
 	emitter
-	backingStore BackingStore
+	backingStore BackingStore // 后端存储
 
 	configLock           sync.RWMutex
-	config               *model.Config
-	configNoEnv          *model.Config
-	configCustomDefaults *model.Config
+	config               *model.Config // 当前配置
+	configNoEnv          *model.Config // 不带环境变量的配置
+	configCustomDefaults *model.Config // 带自定义默认值的配置
 
-	readOnly   bool
-	readOnlyFF bool
+	readOnly   bool // 是否只读
+	readOnlyFF bool // 功能标志只读
 }
 
-// BackingStore defines the behaviour exposed by the underlying store
-// implementation (e.g. file, database).
+// BackingStore 定义底层存储实现的接口
+// 例如：文件、数据库等
 type BackingStore interface {
-	// Set replaces the current configuration in its entirety and updates the backing store.
+	// Set 替换整个配置并更新后端存储
 	Set(*model.Config) error
 
-	// Load retrieves the configuration stored. If there is no configuration stored
-	// the io.ReadCloser will be nil
+	// Load 检索存储的配置
+	// 如果没有存储的配置，io.ReadCloser 将为 nil
 	Load() ([]byte, error)
 
-	// GetFile fetches the contents of a previously persisted configuration file.
-	// If no such file exists, an empty byte array will be returned without error.
+	// GetFile 获取之前保存的配置文件内容
+	// 如果文件不存在，返回空字节数组而不报错
 	GetFile(name string) ([]byte, error)
 
-	// SetFile sets or replaces the contents of a configuration file.
+	// SetFile 设置或替换配置文件内容
 	SetFile(name string, data []byte) error
 
-	// HasFile returns true if the given file was previously persisted.
+	// HasFile 返回指定的文件是否之前被保存过
 	HasFile(name string) (bool, error)
 
-	// RemoveFile removes a previously persisted configuration file.
+	// RemoveFile 移除之前保存的配置文件
 	RemoveFile(name string) error
 
-	// String describes the backing store for the config.
+	// String 描述配置后端存储
 	String() string
 
-	// Close cleans up resources associated with the store.
+	// Close 清理与存储相关的资源
 	Close() error
 }
 
-// NewStoreFromBacking creates and returns a new config store given a backing store.
+// NewStoreFromBacking 基于给定的后端存储创建并返回新的配置存储
 func NewStoreFromBacking(backingStore BackingStore, customDefaults *model.Config, readOnly bool) (*Store, error) {
 	store := &Store{
 		backingStore:         backingStore,
@@ -83,8 +85,8 @@ func NewStoreFromBacking(backingStore BackingStore, customDefaults *model.Config
 	return store, nil
 }
 
-// NewStoreFromDSN creates and returns a new config store backed by either a database or file store
-// depending on the value of the given data source name string.
+// NewStoreFromDSN 基于给定的数据源名称字符串创建并返回新的配置存储
+// 根据数据源名称的值，可能是数据库存储或文件存储
 func NewStoreFromDSN(dsn string, readOnly bool, customDefaults *model.Config, createFileIfNotExist bool) (*Store, error) {
 	var err error
 	var backingStore BackingStore

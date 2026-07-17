@@ -688,6 +688,10 @@
     "translation": "Cannot set members on this channel type."
   },
   {
+    "id": "api.channel.space_channel.app_error",
+    "translation": "Space channels cannot be accessed via /channels endpoints. Use the spaces API instead."
+  },
+  {
     "id": "api.channel.update_channel.banner_info.channel_type.not_allowed",
     "translation": "Channel banner can only be configured on Public and Private channels."
   },
@@ -3767,6 +3771,14 @@
     "translation": "Updating viewed notices failed"
   },
   {
+    "id": "api.team.access_control.added.system_message",
+    "translation": "You have been added to the team **{{.TeamName}}** because you now meet its membership requirements."
+  },
+  {
+    "id": "api.team.access_control.removed.system_message",
+    "translation": "You have been removed from the team **{{.TeamName}}** because you no longer meet its membership requirements."
+  },
+  {
     "id": "api.team.add_members.error",
     "translation": "Error adding team member(s)."
   },
@@ -4435,6 +4447,18 @@
     "translation": "Personal access token added to your account"
   },
   {
+    "id": "api.templates.user_access_token_rotated_body.info",
+    "translation": "A personal access token on your account at {{ .SiteURL }} was regenerated. The previous token secret is no longer valid."
+  },
+  {
+    "id": "api.templates.user_access_token_rotated_body.title",
+    "translation": "Personal access token regenerated"
+  },
+  {
+    "id": "api.templates.user_access_token_rotated_subject",
+    "translation": "[{{ .SiteName }}] Personal access token regenerated"
+  },
+  {
     "id": "api.templates.user_access_token_subject",
     "translation": "[{{ .SiteName }}] Personal access token added to your account"
   },
@@ -5067,6 +5091,10 @@
     "translation": "You do not have permission to update this resource."
   },
   {
+    "id": "api.user.rotate_user_access_token.disabled_token.app_error",
+    "translation": "Cannot regenerate a disabled access token."
+  },
+  {
     "id": "api.user.saml.not_available.app_error",
     "translation": "SAML 2.0 is not configured or supported on this server."
   },
@@ -5611,6 +5639,14 @@
     "translation": "Must specify the team ID to create a channel."
   },
   {
+    "id": "app.channel.create_channel.space_type.app_error",
+    "translation": "Space channels cannot be created via this endpoint."
+  },
+  {
+    "id": "app.channel.create_channel.spaces_not_enabled.app_error",
+    "translation": "The Docs feature is not enabled."
+  },
+  {
     "id": "app.channel.create_direct_channel.internal_error",
     "translation": "Unable to save direct channel."
   },
@@ -5819,6 +5855,10 @@
     "translation": "Unable to move a channel unless all its members are already members of the destination team."
   },
   {
+    "id": "app.channel.move_channel.space.app_error",
+    "translation": "Spaces cannot be moved through this endpoint."
+  },
+  {
     "id": "app.channel.patch_channel_members_notify_props.app_error",
     "translation": "Unable to update channel members' notify props."
   },
@@ -5929,6 +5969,10 @@
   {
     "id": "app.channel.update_channel.rejected_by_plugin",
     "translation": "Channel update rejected by plugin: {{.Reason}}"
+  },
+  {
+    "id": "app.channel.update_channel_privacy.space.app_error",
+    "translation": "Spaces cannot have their privacy changed through this endpoint."
   },
   {
     "id": "app.channel.update_last_viewed_at.app_error",
@@ -7637,6 +7681,18 @@
     "translation": "Unable to send notification post."
   },
   {
+    "id": "app.notify_expiring_access_tokens.dm",
+    "translation": "Your personal access token \"{{.Description}}\" will expire in {{.Days}} days or less. Open **Profile > Security** to regenerate it before it stops working."
+  },
+  {
+    "id": "app.notify_expiring_access_tokens.dm_final",
+    "translation": "Your personal access token \"{{.Description}}\" will expire within 24 hours. Open **Profile > Security** to regenerate it before it stops working."
+  },
+  {
+    "id": "app.notify_expiring_access_tokens.unnamed_token",
+    "translation": "(no description)"
+  },
+  {
     "id": "app.oauth.delete_app.app_error",
     "translation": "An error occurred while deleting the OAuth2 App."
   },
@@ -7919,18 +7975,6 @@
   {
     "id": "app.pap.update_access_control_policies_active.app_error",
     "translation": "Could not update active status of access control policies."
-  },
-  {
-    "id": "app.pat_expiry_notify.dm",
-    "translation": "Your personal access token \"{{.Description}}\" will expire in {{.Days}} days or less. Open **Profile > Security** to regenerate it before it stops working."
-  },
-  {
-    "id": "app.pat_expiry_notify.dm_final",
-    "translation": "Your personal access token \"{{.Description}}\" will expire within 24 hours. Open **Profile > Security** to regenerate it before it stops working."
-  },
-  {
-    "id": "app.pat_expiry_notify.unnamed_token",
-    "translation": "(no description)"
   },
   {
     "id": "app.pdp.access_evaluation.app_error",
@@ -9757,6 +9801,10 @@
   {
     "id": "app.user_access_token.revoke_non_compliant.partial.app_error",
     "translation": "The batch limit was reached before all non-compliant tokens could be revoked. Run the operation again to continue."
+  },
+  {
+    "id": "app.user_access_token.rotate.app_error",
+    "translation": "Unable to regenerate the access token."
   },
   {
     "id": "app.user_access_token.save.app_error",
@@ -13401,6 +13449,10 @@
   {
     "id": "plugin_api.bot_cant_create_bot",
     "translation": "Bot user cannot create bot user."
+  },
+  {
+    "id": "plugin_api.channel.space_notify_props.app_error",
+    "translation": "Notify props cannot be set on space channels."
   },
   {
     "id": "plugin_api.get_file_link.disabled.app_error",
